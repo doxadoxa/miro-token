@@ -22,7 +22,7 @@ contract('MiroCrowdsale', function(accounts) {
         this.investor = accounts[3];
         this.investmentAmount = 1;//1 ether
 
-        this.restrictedAmount = Math.round(this.investmentAmount * this.rate * (this.restrictedPercent/100));
+        this.restrictedAmount = Math.floor(this.investmentAmount * this.rate * this.restrictedPercent / (100 - this.restrictedPercent));
         this.finishedTotalSupply = this.restrictedAmount + this.investmentAmount * this.rate;
     });
 

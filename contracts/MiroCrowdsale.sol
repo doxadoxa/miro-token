@@ -80,7 +80,7 @@ contract MiroCrowdsale is Ownable {
 
     function finish() onlyOwner notFinished external {
         uint totalSupply = token.totalSupply();
-        uint restrictedTokens = totalSupply.mul(restrictedPercent).div(100);
+        uint restrictedTokens = totalSupply.mul(restrictedPercent).div(100 - restrictedPercent);
 
         token.mint(restricted, restrictedTokens);
 
