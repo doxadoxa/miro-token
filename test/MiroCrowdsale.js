@@ -69,9 +69,11 @@ contract('MiroCrowdsale', function(accounts) {
                 from: this.investor
             });
         } catch( error ) {
-            const balance = await this.token.balanceOf(this.investor);
-            assert.equal(balance.valueOf(), 0, "Not null tokens balance" );
+            assert.isAbove(error.message.search('invalid opcode'), -1, 'Invalid opcode error must be returned');
         }
+
+        const balance = await this.token.balanceOf(this.investor);
+        assert.equal(balance.valueOf(), 0, "Not null tokens balance" );
     });
 
     it('Should UNapproved investor balance change less then investing amount (only gas)', async function() {
@@ -82,13 +84,24 @@ contract('MiroCrowdsale', function(accounts) {
         assert.equal(difference < 1 * 10 ** 18, true);
     });
 
+    it('Shouldn\'t add address to approved not by owner', async function() {
+        try {
+            await this.sale.addApprovedAddress(this.investor, {from : accounts[4]});
+        } catch (error) {
+            assert.isAbove(error.message.search('invalid opcode'), -1, 'Invalid opcode error must be returned');
+        }
+
+        const isApproved = await this.sale.isAddressApproved.call(this.investor);
+        assert.equal(isApproved, false);
+    });
+
     it('Should add address to approved', async function() {
         await this.sale.addApprovedAddress(this.investor);
 
         const isApproved = await this.sale.isAddressApproved.call(this.investor);
 
         assert.equal(isApproved, true);
-    })
+    });
 
     it('Should send tokens to approved purchaser', async function() {
         this.multisigStartBalance = await web3.eth.getBalance(this.multisig);
@@ -122,7 +135,7 @@ contract('MiroCrowdsale', function(accounts) {
         var finished = await this.sale.finished();
 
         assert.equal(finished, true);
-    })
+    });
 
     it('Should be ' + this.restrictedAmount + ' tokens on restricted address', async function() {
         const balance = await this.token.balanceOf(this.restricted);
