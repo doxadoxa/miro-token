@@ -1,9 +1,9 @@
 pragma solidity ^0.4.11;
 
 import "./MiroToken.sol";
-import "./libs/Ownable.sol";
+import "./ApprovedCrowdsale.sol";
 
-contract MiroCrowdsale is Ownable {
+contract MiroCrowdsale is ApprovedCrowdsale {
 
     using SafeMath for uint;
 
@@ -89,7 +89,7 @@ contract MiroCrowdsale is Ownable {
         finished = true;
     }
 
-    function() payable external {
+    function() payable onlyApproved external {
         createTokens();
     }
 

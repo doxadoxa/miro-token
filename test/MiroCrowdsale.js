@@ -60,7 +60,37 @@ contract('MiroCrowdsale', function(accounts) {
         assert.equal( (now > startAt ) && (now <= endAt), true, "Sale not active" );
     });
 
-    it('Should send tokens to purchaser', async function() {
+    it('Should NOT send tokens to unapproved purchaser', async function() {
+        this.multisigStartBalance = web3.eth.getBalance(this.investor);
+
+        try {
+            await this.sale.sendTransaction({
+                value: this.investmentAmount * 10 ** 18,
+                from: this.investor
+            });
+        } catch( error ) {
+            const balance = await this.token.balanceOf(this.investor);
+            assert.equal(balance.valueOf(), 0, "Not null tokens balance" );
+        }
+    });
+
+    it('Should UNapproved investor balance change less then investing amount (only gas)', async function() {
+        var currentBalance = web3.eth.getBalance(this.investor);
+
+        var difference = this.multisigStartBalance.sub(currentBalance);
+
+        assert.equal(difference < 1 * 10 ** 18, true);
+    });
+
+    it('Should add address to approved', async function() {
+        await this.sale.addApprovedAddress(this.investor);
+
+        const isApproved = await this.sale.isAddressApproved.call(this.investor);
+
+        assert.equal(isApproved, true);
+    })
+
+    it('Should send tokens to approved purchaser', async function() {
         this.multisigStartBalance = await web3.eth.getBalance(this.multisig);
 
         await this.sale.sendTransaction({
