@@ -11,15 +11,15 @@ To complete tests on this contracts you need.
 ## Run test
 In separate tab start `testrpc` with command:
 ```sh
-testrpc
+$ testrpc
 ```
 
 On first tab from project folder run:
 ```sh
-cd miro-token
-truffle compile
-truffle migrate
-truffle test
+$ cd miro-token
+$ truffle compile
+$ truffle migrate
+$ truffle test
 ```
 
 In next time you can use only `truffle test` command.
