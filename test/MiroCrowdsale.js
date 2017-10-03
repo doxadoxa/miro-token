@@ -19,6 +19,8 @@ contract('MiroCrowdsale', function(accounts) {
         this.token = await MiroToken.new();
         this.sale = await MiroCrowdsale.new(this.token.address, this.multisig, this.restricted, this.startAt, this.period, this.rate, this.hardcap, this.restrictedPercent);
 
+        this.token.addReleaseAgent(this.sale.address);
+
         this.investor = accounts[3];
         this.investmentAmount = 1;//1 ether
 

@@ -17,6 +17,8 @@ contract('MiroPresale', function(accounts) {
         this.token = await MiroToken.new();
         this.presale = await MiroPresale.new(this.token.address, this.multisig, this.startAt, this.period, this.rate);
 
+        this.token.addReleaseAgent(this.presale.address);
+
         this.investor = accounts[3];
         this.investmentAmount = 1;//1 ether
     });
