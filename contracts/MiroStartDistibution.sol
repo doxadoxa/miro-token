@@ -24,10 +24,9 @@ contract MiroStartDistribution is Ownable {
         return false;
     }
 
-    function distribute(address _address) external {
-        require(isDistributor(_address));
-        require(msg.sender == _address);
-
+    function distribute() external {
+        require(isDistributor(msg.sender));
+        
         address distributor = _address;
         uint256 amount = distributors[_address];
 
