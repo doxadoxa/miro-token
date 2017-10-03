@@ -30,20 +30,20 @@ contract MintableToken is StandardToken, Ownable {
   }
 
   modifier onlyReleaseAgents() {
-      require(isReleaseAgent());
+      require(isReleaseAgent(msg.sender));
       _;
   }
 
-  function isReleaseAgent() public returns (bool) {
+  function isReleaseAgent(address _address) public constant returns (bool) {
       for(uint i; i < releaseAgents.length; ++i) {
-          if ( msg.sender == releaseAgents[i] ) {
+          if ( _address == releaseAgents[i] ) {
               return true;
           }
       }
       return false;
   }
 
-  function addReleaseAgent(address _releaseAgent) onlyOwner {
+  function addReleaseAgent(address _releaseAgent) public onlyOwner {
       releaseAgents.push(_releaseAgent);
   }
 
