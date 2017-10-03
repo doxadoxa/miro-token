@@ -69,7 +69,7 @@ contract MiroCrowdsale is ApprovedCrowdsale {
         return bonusAmount;
     }
 
-    function createTokens() underHardcap private returns (uint) {
+    function createTokens() underHardcap whenActive private returns (uint) {
         multisig.transfer(msg.value);
 
         uint amount = rate.mul(msg.value).div(1 ether);

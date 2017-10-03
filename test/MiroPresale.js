@@ -51,7 +51,50 @@ contract('MiroPresale', function(accounts) {
         assert.equal( (now > startAt ) && (now <= endAt), true, "Presale not active" );
     });
 
-    it('Should send tokens to purchaser', async function() {
+    it('Should NOT send tokens to unapproved purchaser', async function() {
+        this.multisigStartBalance = web3.eth.getBalance(this.investor);
+
+        try {
+            await this.presale.sendTransaction({
+                value: this.investmentAmount * 10 ** 18,
+                from: this.investor
+            });
+        } catch( error ) {
+            assert.isAbove(error.message.search('invalid opcode'), -1, 'Invalid opcode error must be returned');
+        }
+
+        const balance = await this.token.balanceOf(this.investor);
+        assert.equal(balance.valueOf(), 0, "Not null tokens balance" );
+    });
+
+    it('Should UNapproved investor balance change less then investing amount (only gas)', async function() {
+        var currentBalance = web3.eth.getBalance(this.investor);
+
+        var difference = this.multisigStartBalance.sub(currentBalance);
+
+        assert.equal(difference < 1 * 10 ** 18, true);
+    });
+
+    it('Shouldn\'t add address to approved not by owner', async function() {
+        try {
+            await this.presale.addApprovedAddress(this.investor, {from : accounts[4]});
+        } catch (error) {
+            assert.isAbove(error.message.search('invalid opcode'), -1, 'Invalid opcode error must be returned');
+        }
+
+        const isApproved = await this.presale.isAddressApproved.call(this.investor);
+        assert.equal(isApproved, false);
+    });
+
+    it('Should add address to approved', async function() {
+        await this.presale.addApprovedAddress(this.investor);
+
+        const isApproved = await this.presale.isAddressApproved.call(this.investor);
+
+        assert.equal(isApproved, true);
+    });
+
+    it('Should send tokens to approved purchaser', async function() {
         this.multisigStartBalance = await web3.eth.getBalance(this.multisig);
 
         await this.presale.sendTransaction({
