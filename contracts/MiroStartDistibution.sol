@@ -26,9 +26,9 @@ contract MiroStartDistribution is Ownable {
 
     function distribute() external {
         require(isDistributor(msg.sender));
-        
-        address distributor = _address;
-        uint256 amount = distributors[_address];
+
+        address distributor = msg.sender;
+        uint256 amount = distributors[msg.sender];
 
         token.mint(distributor, amount);
     }

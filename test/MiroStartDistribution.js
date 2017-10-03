@@ -24,7 +24,7 @@ contract('MiroStartDistribution', function(accounts) {
         var result = false;
 
         try {
-            result = await this.distributionContract.distribute(this.distributor, {from : this.distributor});
+            result = await this.distributionContract.distribute({from : this.distributor});
         } catch ( error ) {
             assert.isAbove(error.message.indexOf('invalid opcode'), -1, 'Must be -1');
         }
@@ -55,9 +55,8 @@ contract('MiroStartDistribution', function(accounts) {
 
     it('Should distribution complete on approved distributor', async function() {
         try {
-            await this.distributionContract.distribute(this.distributor, {from : this.distributor});
+            await this.distributionContract.distribute({from : this.distributor});
         } catch ( error ) {
-            console.log(error);
             assert.fail();
         }
 
