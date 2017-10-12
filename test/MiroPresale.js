@@ -1,4 +1,6 @@
 var MiroPresale = artifacts.require("./MiroPresale.sol");
+var TokenStorage = artifacts.require("./TokenStorage.sol");
+
 var MiroToken = artifacts.require("./MiroToken.sol");
 
 
@@ -7,7 +9,7 @@ contract('MiroPresale', function(accounts) {
     this.multisigStartBalance = 0;
 
     before(async function() {
-
+        this.owner = accounts[0];
         this.multisig = accounts[1];
         this.rate = 1000;
 
@@ -15,9 +17,11 @@ contract('MiroPresale', function(accounts) {
         this.period = 21;
 
         this.token = await MiroToken.new();
-        this.presale = await MiroPresale.new(this.token.address, this.multisig, this.startAt, this.period, this.rate);
+        this.storage = await TokenStorage.new(this.token.address);
+        this.presale = await MiroPresale.new(this.token.address, this.storage.address, this.multisig, this.startAt, this.period, this.rate);
 
         this.token.addReleaseAgent(this.presale.address);
+        this.storage.addPromiseAgent(this.presale.address);
 
         this.investor = accounts[3];
         this.investmentAmount = 1;//1 ether
@@ -102,9 +106,20 @@ contract('MiroPresale', function(accounts) {
             from: this.investor
         });
 
-        const balance = await this.token.balanceOf(this.investor);
+        const balance = await this.storage.getPaymentPromise(this.investor);
 
         assert.equal(balance.valueOf(), this.investmentAmount * this.rate );
+    });
+
+    it('Should distribute from TokenStorage by owner', async function() {
+        try {
+            await this.storage.payout(this.investor, this.investor, this.investmentAmount * this.rate, {from : this.owner});
+        } catch( error ) {
+            assert.fail();
+        }
+
+        const balance = await this.token.balanceOf(this.investor);
+        assert.equal(balance.valueOf(), this.investmentAmount * this.rate);
     });
 
     it('Should be change multisig balance in ether', async function() {

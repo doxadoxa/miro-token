@@ -1,6 +1,7 @@
 pragma solidity ^0.4.11;
 
 import "./MiroToken.sol";
+import "./TokenStorage.sol";
 import "./ApprovedCrowdsale.sol";
 
 contract MiroCrowdsale is ApprovedCrowdsale {
@@ -16,6 +17,7 @@ contract MiroCrowdsale is ApprovedCrowdsale {
     uint public restrictedPercent;
 
     MiroToken public token;
+    TokenStorage public tokenStorage;
 
     uint public rate;
 
@@ -38,9 +40,10 @@ contract MiroCrowdsale is ApprovedCrowdsale {
         _;
     }
 
-    function MiroCrowdsale(address _token, address _multisig, address _restricted, uint256 _startAt, uint _period, uint _rate, uint _hardcap, uint _restrictedPercent) {
+    function MiroCrowdsale(address _token, address _tokenStorage, address _multisig, address _restricted, uint256 _startAt, uint _period, uint _rate, uint _hardcap, uint _restrictedPercent) {
 
         token = MiroToken(_token);
+        tokenStorage = TokenStorage(_tokenStorage);
 
         finished = false;
 
@@ -75,7 +78,8 @@ contract MiroCrowdsale is ApprovedCrowdsale {
         uint amount = rate.mul(msg.value).div(1 ether);
         uint totalAmount = amount.add(calculateBonus(amount));
 
-        token.mint(msg.sender, totalAmount);
+        token.mint(tokenStorage, totalAmount);
+        tokenStorage.addPaymentPromise(msg.sender, totalAmount);
     }
 
     function finish() onlyOwner notFinished external {

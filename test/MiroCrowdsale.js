@@ -1,4 +1,5 @@
 var MiroCrowdsale = artifacts.require("./MiroCrowdsale.sol");
+var TokenStorage = artifacts.require("./TokenStorage.sol");
 var MiroToken = artifacts.require("./MiroToken.sol");
 
 contract('MiroCrowdsale', function(accounts) {
@@ -6,6 +7,7 @@ contract('MiroCrowdsale', function(accounts) {
     this.multisigStartBalance = 0;
 
     before(async function() {
+        this.owner = accounts[0];
         this.multisig = accounts[1];
         this.restricted = accounts[2];
 
@@ -17,14 +19,17 @@ contract('MiroCrowdsale', function(accounts) {
         this.period = 21;
 
         this.token = await MiroToken.new();
-        this.sale = await MiroCrowdsale.new(this.token.address, this.multisig, this.restricted, this.startAt, this.period, this.rate, this.hardcap, this.restrictedPercent);
+        this.storage = await TokenStorage.new(this.token.address);
+        this.sale = await MiroCrowdsale.new(this.token.address, this.storage.address, this.multisig, this.restricted, this.startAt, this.period, this.rate, this.hardcap, this.restrictedPercent);
 
         this.token.addReleaseAgent(this.sale.address);
+        this.storage.addPromiseAgent(this.sale.address);
 
         this.investor = accounts[3];
         this.investmentAmount = 1;//1 ether
 
         this.restrictedAmount = Math.floor(this.investmentAmount * this.rate * this.restrictedPercent / (100 - this.restrictedPercent));
+        console.log(this.restrictedAmount);
         this.finishedTotalSupply = this.restrictedAmount + this.investmentAmount * this.rate;
     });
 
@@ -105,7 +110,7 @@ contract('MiroCrowdsale', function(accounts) {
         assert.equal(isApproved, true);
     });
 
-    it('Should send tokens to approved purchaser', async function() {
+    it('Should create payment promise for purchaser in TokenStorage', async function() {
         this.multisigStartBalance = await web3.eth.getBalance(this.multisig);
 
         await this.sale.sendTransaction({
@@ -113,9 +118,20 @@ contract('MiroCrowdsale', function(accounts) {
             from: this.investor
         });
 
-        const balance = await this.token.balanceOf(this.investor);
+        const balance = await this.storage.getPaymentPromise(this.investor);
 
         assert.equal(balance.valueOf(), this.investmentAmount * this.rate );
+    });
+
+    it('Should distribute from TokenStorage by owner', async function() {
+        try {
+            await this.storage.payout(this.investor, this.investor, this.investmentAmount * this.rate, {from : this.owner});
+        } catch( error ) {
+            assert.fail();
+        }
+
+        const balance = await this.token.balanceOf(this.investor);
+        assert.equal(balance.valueOf(), this.investmentAmount * this.rate);
     });
 
     it('Should be change multisig balance in ether', async function() {
@@ -139,13 +155,13 @@ contract('MiroCrowdsale', function(accounts) {
         assert.equal(finished, true);
     });
 
-    it('Should be ' + this.restrictedAmount + ' tokens on restricted address', async function() {
+    it('Should exist real number of tokens on restricted address', async function() {
         const balance = await this.token.balanceOf(this.restricted);
 
         assert.equal(balance.valueOf(), this.restrictedAmount);
     });
 
-    it('Should be ' + this.finishedTotalSupply + ' tokens', async function() {
+    it('Should be total supply alright', async function() {
 
         const totalSupply = await this.token.totalSupply.call();
 

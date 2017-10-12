@@ -1,6 +1,7 @@
 pragma solidity ^0.4.11;
 
 import "./MiroToken.sol";
+import "./TokenStorage.sol";
 import "./ApprovedCrowdsale.sol";
 
 contract MiroPresale is ApprovedCrowdsale {
@@ -13,6 +14,8 @@ contract MiroPresale is ApprovedCrowdsale {
     uint256 public endAt;
 
     MiroToken public token;
+    TokenStorage public tokenStorage;
+
 
     uint public rate;
 
@@ -21,7 +24,7 @@ contract MiroPresale is ApprovedCrowdsale {
         _;
     }
 
-    function MiroPresale(address _token, address _multisig, uint256 _startAt, uint _period, uint _rate) {
+    function MiroPresale(address _token,  address _tokenStorage, address _multisig, uint256 _startAt, uint _period, uint _rate) {
         token = MiroToken(_token);
         multisig = _multisig;
 
@@ -29,6 +32,8 @@ contract MiroPresale is ApprovedCrowdsale {
         endAt = _startAt + _period * 1 days;
 
         rate = _rate;
+
+        tokenStorage = TokenStorage(_tokenStorage);
     }
 
     function calculateBonus(uint amount) private returns (uint) {
@@ -51,7 +56,8 @@ contract MiroPresale is ApprovedCrowdsale {
         uint amount = rate.mul(msg.value).div(1 ether);
         uint totalAmount = amount.add(calculateBonus(amount));
 
-        token.mint(msg.sender, totalAmount);
+        token.mint(address(tokenStorage), totalAmount);
+        tokenStorage.addPaymentPromise(msg.sender, totalAmount);
     }
 
     function() external onlyApproved payable {

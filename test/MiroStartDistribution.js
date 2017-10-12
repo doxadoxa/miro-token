@@ -1,4 +1,5 @@
 var MiroToken = artifacts.require("./MiroToken.sol");
+var TokenStorage = artifacts.require("./TokenStorage.sol");
 var MiroStartDistribution = artifacts.require("./MiroStartDistribution.sol");
 
 contract('MiroStartDistribution', function(accounts) {
@@ -6,12 +7,16 @@ contract('MiroStartDistribution', function(accounts) {
     before(async function() {
 
         this.token = await MiroToken.new();
-        this.distributionContract = await MiroStartDistribution.new(this.token.address);
+        this.storage = await TokenStorage.new(this.token.address);
+
+        this.distributionContract = await MiroStartDistribution.new(this.token.address, this.storage.address);
 
         this.token.addReleaseAgent(this.distributionContract.address);
+        this.storage.addPromiseAgent(this.distributionContract.address);
 
+        this.owner = accounts[0];
         this.distributor = accounts[1];
-        this.distrubutionTokensAmount = 1000;
+        this.distributionTokensAmount = 1000;
     });
 
     it('Contract should be in release agents', async function() {
@@ -34,7 +39,7 @@ contract('MiroStartDistribution', function(accounts) {
 
     it('Shouldn\'t add in distributors by NOT owner', async function() {
         try {
-            await this.distributionContract.putDistributor(this.distributor, this.distrubutionTokensAmount, {from : this.distributor});
+            await this.distributionContract.putDistributor(this.distributor, this.distributionTokensAmount, {from : this.distributor});
         } catch ( error ) {
             assert.isAbove(error.message.indexOf('invalid opcode'), -1, 'Must be -1');
         }
@@ -42,7 +47,7 @@ contract('MiroStartDistribution', function(accounts) {
 
     it('Should add in distributors by owner', async function() {
         try {
-            await this.distributionContract.putDistributor(this.distributor, this.distrubutionTokensAmount);
+            await this.distributionContract.putDistributor(this.distributor, this.distributionTokensAmount);
         } catch ( error ) {
             assert.fail();
         }
@@ -60,8 +65,20 @@ contract('MiroStartDistribution', function(accounts) {
             assert.fail();
         }
 
+        const paymentPromise = await this.storage.getPaymentPromise(this.distributor);
+        assert.equal(paymentPromise.valueOf(), this.distributionTokensAmount);
+    });
+
+    it('Should distribute from TokenStorage by owner', async function() {
+        try {
+            await this.storage.payout(this.distributor, this.distributor, this.distributionTokensAmount, {from : this.owner});
+        } catch( error ) {
+            console.log(error);
+            assert.fail();
+        }
+
         const balance = await this.token.balanceOf(this.distributor);
-        assert.equal(balance.valueOf(), this.distrubutionTokensAmount);
+        assert.equal(balance.valueOf(), this.distributionTokensAmount);
     });
 
 });

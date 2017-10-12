@@ -1,16 +1,28 @@
 pragma solidity ^0.4.11;
 
 import "./libs/Ownable.sol";
+import "./TokenStorage.sol";
 import "./MiroToken.sol";
 
 contract MiroStartDistribution is Ownable {
 
     MiroToken public token;
+    TokenStorage public tokenStorage;
 
-    mapping (address => uint256) distributors;
+    mapping (address => uint256) public distributors;
 
-    function MiroStartDistribution(address _token) {
+    bool public finishDistributing;
+
+    modifier notFinished() {
+        require(finishDistributing != true);
+        _;
+    }
+
+    function MiroStartDistribution(address _token, address _tokenStorage) {
         token = MiroToken(_token);
+        tokenStorage = TokenStorage(_tokenStorage);
+
+        finishDistributing = false;
     }
 
     function putDistributor(address _address, uint256 _amount) onlyOwner {
@@ -24,13 +36,17 @@ contract MiroStartDistribution is Ownable {
         return false;
     }
 
-    function distribute() external {
+    function distribute() notFinished external {
         require(isDistributor(msg.sender));
 
-        address distributor = msg.sender;
         uint256 amount = distributors[msg.sender];
 
-        token.mint(distributor, amount);
+        token.mint(tokenStorage, amount);
+        tokenStorage.addPaymentPromise(msg.sender, amount);
+    }
+
+    function finish() {
+        finishDistributing = true;
     }
 
 }
