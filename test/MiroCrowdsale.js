@@ -12,15 +12,15 @@ contract('MiroCrowdsale', function(accounts) {
         this.restricted = accounts[2];
 
         this.rate = 1000;
-        this.hardcap = 1 * 10 ** 8;
-        this.restrictedPercent = 40;
+        this.hardcap = 65000 * 10 ** 18;
+        this.restrictedPercent = 35;
 
-        this.startAt = Math.round(Date.now()/1000)-5*24*60*60;
-        this.period = 21;
+        this.startAt = 1510604088;//1511092800;
+        this.endAt = 1513684800;
 
         this.token = await MiroToken.new();
         this.storage = await TokenStorage.new(this.token.address);
-        this.sale = await MiroCrowdsale.new(this.token.address, this.storage.address, this.multisig, this.restricted, this.startAt, this.period, this.rate, this.hardcap, this.restrictedPercent);
+        this.sale = await MiroCrowdsale.new(this.token.address, this.storage.address, this.multisig, this.restricted);
 
         this.token.addReleaseAgent(this.sale.address);
         this.storage.addPromiseAgent(this.sale.address);
@@ -28,9 +28,7 @@ contract('MiroCrowdsale', function(accounts) {
         this.investor = accounts[3];
         this.investmentAmount = 1;//1 ether
 
-        this.restrictedAmount = Math.floor(this.investmentAmount * this.rate * this.restrictedPercent / (100 - this.restrictedPercent));
-        console.log(this.restrictedAmount);
-        this.finishedTotalSupply = this.restrictedAmount + this.investmentAmount * this.rate;
+        this.supplyBeforeFinisn = 0;
     });
 
     it('Should multisig address equals this.multisig', async function() {
@@ -53,9 +51,8 @@ contract('MiroCrowdsale', function(accounts) {
 
     it('Should contains right endAt', async function() {
         var endAt = await this.sale.endAt.call();
-        var calculatedEndAt = this.startAt + this.period*24*60*60;
 
-        assert.equal(endAt, calculatedEndAt, "End date is wrong");
+        assert.equal(endAt, this.endAt, "End date is wrong");
     });
 
     it('Should be active', async function() {
@@ -67,7 +64,7 @@ contract('MiroCrowdsale', function(accounts) {
         assert.equal( (now > startAt ) && (now <= endAt), true, "Sale not active" );
     });
 
-    it('Should NOT send tokens to unapproved purchaser', async function() {
+    it('Should send tokens to purchaser', async function() {
         this.multisigStartBalance = web3.eth.getBalance(this.investor);
 
         try {
@@ -81,33 +78,6 @@ contract('MiroCrowdsale', function(accounts) {
 
         const balance = await this.token.balanceOf(this.investor);
         assert.equal(balance.valueOf(), 0, "Not null tokens balance" );
-    });
-
-    it('Should UNapproved investor balance change less then investing amount (only gas)', async function() {
-        var currentBalance = web3.eth.getBalance(this.investor);
-
-        var difference = this.multisigStartBalance.sub(currentBalance);
-
-        assert.equal(difference < 1 * 10 ** 18, true);
-    });
-
-    it('Shouldn\'t add address to approved not by owner', async function() {
-        try {
-            await this.sale.addApprovedAddress(this.investor, {from : accounts[4]});
-        } catch (error) {
-            assert.isAbove(error.message.search('invalid opcode'), -1, 'Invalid opcode error must be returned');
-        }
-
-        const isApproved = await this.sale.isAddressApproved.call(this.investor);
-        assert.equal(isApproved, false);
-    });
-
-    it('Should add address to approved', async function() {
-        await this.sale.addApprovedAddress(this.investor);
-
-        const isApproved = await this.sale.isAddressApproved.call(this.investor);
-
-        assert.equal(isApproved, true);
     });
 
     it('Should create payment promise for purchaser in TokenStorage', async function() {
@@ -149,6 +119,8 @@ contract('MiroCrowdsale', function(accounts) {
     });
 
     it('Try call finish', async function() {
+        this.supplyBeforeFinisn = await this.token.totalSupply.call();
+
         await this.sale.finish();
         var finished = await this.sale.finished();
 
@@ -157,14 +129,8 @@ contract('MiroCrowdsale', function(accounts) {
 
     it('Should exist real number of tokens on restricted address', async function() {
         const balance = await this.token.balanceOf(this.restricted);
-
-        assert.equal(balance.valueOf(), this.restrictedAmount);
-    });
-
-    it('Should be total supply alright', async function() {
-
         const totalSupply = await this.token.totalSupply.call();
 
-        assert.equal(totalSupply, this.finishedTotalSupply)
+        assert.equal(totalSupply - balance.valueOf(), this.supplyBeforeFinisn);
     });
 });

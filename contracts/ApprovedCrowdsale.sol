@@ -4,19 +4,20 @@ import "./libs/Ownable.sol";
 
 contract ApprovedCrowdsale is Ownable {
 
-    address[] private approvedAddresses;
+    mapping (address => bool) private approvedAddresses;
 
-    function addApprovedAddress(address approvedAddress) onlyOwner external {
-        approvedAddresses.push(approvedAddress);
+    function addApprovedAddress(address _address) onlyOwner external {
+        approvedAddresses[_address] = true;
     }
 
-    function isAddressApproved(address approvedAddress) public constant returns (bool) {
-        for(uint i = 0; i < approvedAddresses.length; ++i) {
-            if ( approvedAddresses[i] == approvedAddress ) {
-                return true;
-            }
-        }
+    function removeApprovedAddress(address _address) onlyOwner external {
+        approvedAddresses[_address] = false;
+    }
 
+    function isAddressApproved(address _address) public constant returns (bool) {
+        if ( approvedAddresses[_address] == true ) {
+            return true;
+        }
         return false;
     }
 

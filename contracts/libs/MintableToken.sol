@@ -9,7 +9,7 @@ import '../libs/Ownable.sol';
  * @title Mintable token
  * @dev Simple ERC20 Token example, with mintable token creation
  * @dev Issue: * https://github.com/OpenZeppelin/zeppelin-solidity/issues/120
- * Based on code by TokenMarketNet: https://github.com/TokenMarketNet/ico/blob/master/contracts/MintableToken.sol
+ * Based on code by TokenMarketNet:  https://github.com/TokenMarketNet/ico/blob/master/contracts/MintableToken.sol
  */
 
 contract MintableToken is StandardToken, Ownable {
@@ -18,7 +18,7 @@ contract MintableToken is StandardToken, Ownable {
 
   bool public mintingFinished = false;
 
-  address[] public releaseAgents;
+  mapping (address => bool) public releaseAgents;
 
   function MintableToken() {
       addReleaseAgent(msg.sender);
@@ -35,16 +35,15 @@ contract MintableToken is StandardToken, Ownable {
   }
 
   function isReleaseAgent(address _address) public constant returns (bool) {
-      for(uint i; i < releaseAgents.length; ++i) {
-          if ( _address == releaseAgents[i] ) {
-              return true;
-          }
+      if ( releaseAgents[_address] == true ) {
+          return true;
       }
+
       return false;
   }
 
   function addReleaseAgent(address _releaseAgent) public onlyOwner {
-      releaseAgents.push(_releaseAgent);
+      releaseAgents[_releaseAgent] = true;
   }
 
   /**

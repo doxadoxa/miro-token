@@ -9,7 +9,7 @@ contract TokenStorage is Ownable {
     using SafeMath for uint;
 
     mapping (address => uint256) public paymentPromises;
-    address[] public promiseAgents;
+    mapping (address => bool) public promiseAgents;
 
     MiroToken public token;
 
@@ -23,20 +23,19 @@ contract TokenStorage is Ownable {
     }
 
     function addPromiseAgent(address _promiseAgent) public onlyOwner {
-        promiseAgents.push(_promiseAgent);
+        promiseAgents[_promiseAgent] = true;
     }
 
     function isPromiseAgent(address _address) public constant returns (bool) {
-        for(uint i; i < promiseAgents.length; ++i) {
-            if ( _address == promiseAgents[i] ) {
-                return true;
-            }
+        if ( promiseAgents[_address] == true ) {
+            return true;
         }
+
         return false;
     }
 
     function addPaymentPromise(address _address, uint256 _amount) onlyPromiseAgent external {
-        if ( paymentPromises[_address] != uint256(0x0) ) {
+        if ( paymentPromises[_address] != 0x0 ) {
             paymentPromises[_address].add(_amount);
         } else {
             paymentPromises[_address] = _amount;
@@ -48,7 +47,7 @@ contract TokenStorage is Ownable {
     }
 
     function payout(address _from, address _to, uint256 _amount) onlyOwner external {
-        require( paymentPromises[_from] != uint256(0x0) );
+        require( paymentPromises[_from] != 0x0 );
         require( _amount >= paymentPromises[_from] );
 
         paymentPromises[_from] = paymentPromises[_from].sub(_amount);

@@ -2,26 +2,30 @@ pragma solidity ^0.4.11;
 
 import "./MiroToken.sol";
 import "./TokenStorage.sol";
-import "./ApprovedCrowdsale.sol";
+import "./libs/Ownable.sol";
 
-contract MiroCrowdsale is ApprovedCrowdsale {
+contract MiroCrowdsale is Ownable {
 
     using SafeMath for uint;
 
     address public multisig;
     address public restricted;
 
+    uint256 public collected;
+
     uint256 public startAt;
     uint256 public endAt;
 
     uint public restrictedPercent;
+
 
     MiroToken public token;
     TokenStorage public tokenStorage;
 
     uint public rate;
 
-    uint public hardcap;
+    uint256 public hardcap;
+    uint256 public softcap;
 
     bool public finished;
 
@@ -31,42 +35,57 @@ contract MiroCrowdsale is ApprovedCrowdsale {
     }
 
     modifier notFinished() {
-        require(finished == false);
+        require(!finished);
         _;
     }
 
     modifier underHardcap() {
-        require(token.totalSupply() < hardcap );
+        require(collected < hardcap );
         _;
     }
 
-    function MiroCrowdsale(address _token, address _tokenStorage, address _multisig, address _restricted, uint256 _startAt, uint _period, uint _rate, uint _hardcap, uint _restrictedPercent) {
+    function MiroCrowdsale(address _token, address _tokenStorage, address _multisig, address _restricted) {
 
         token = MiroToken(_token);
         tokenStorage = TokenStorage(_tokenStorage);
 
         finished = false;
 
+        collected = 0;
+
         multisig = _multisig;
         restricted = _restricted;
 
-        startAt = _startAt;
-        endAt = _startAt + _period * 1 days;
+        hardcap = 65000 * 1 ether;
+        softcap = 5000 * 1 ether;
 
-        rate = _rate;
-        hardcap = _hardcap;
-        restrictedPercent = _restrictedPercent;
+        rate = 1000;
+
+        startAt = 1510604088;//1511092800;
+        endAt = 1513684800;
+
+        restrictedPercent = 35;
     }
 
     function calculateBonus(uint amount) private returns(uint) {
         uint bonusAmount = 0;
 
-        if ( amount > 10000 ) {
-            bonusAmount = amount.mul(5).div(100);
-        } else if ( amount > 100000 ) {
-            bonusAmount = amount.mul(10).div(100);
-        } else if ( amount > 1000000 ) {
+        /*
+        Extra bonuses:
+        - 0.5 to 10 ETH 15% MIRO
+        - 10 to 50 ETH 20% MIRO
+        - 50 to 100 ETH 25% MIRO
+        - 100 ETH 30% MIRO
+        */
+
+        if ( amount > 100000 ) {
+            bonusAmount = amount.mul(30).div(100);
+        } else if ( amount > 50000 ) {
+            bonusAmount = amount.mul(25).div(100);
+        } else if ( amount > 10000 ) {
             bonusAmount = amount.mul(20).div(100);
+        } else if ( amount > 5000 ) {
+            bonusAmount = amount.mul(15).div(100);
         }
 
         return bonusAmount;
@@ -75,14 +94,20 @@ contract MiroCrowdsale is ApprovedCrowdsale {
     function createTokens() underHardcap whenActive private returns (uint) {
         multisig.transfer(msg.value);
 
+        collected.add(msg.value);
+
         uint amount = rate.mul(msg.value).div(1 ether);
         uint totalAmount = amount.add(calculateBonus(amount));
 
         token.mint(tokenStorage, totalAmount);
         tokenStorage.addPaymentPromise(msg.sender, totalAmount);
+
+        if ( collected > hardcap ) {
+            finishCrowdsale();
+        }
     }
 
-    function finish() onlyOwner notFinished external {
+    function finishCrowdsale() notFinished private {
         uint totalSupply = token.totalSupply();
         uint restrictedTokens = totalSupply.mul(restrictedPercent).div(100 - restrictedPercent);
 
@@ -93,7 +118,11 @@ contract MiroCrowdsale is ApprovedCrowdsale {
         finished = true;
     }
 
-    function() payable onlyApproved external {
+    function finish() onlyOwner notFinished external {
+        finishCrowdsale();
+    }
+
+    function() payable external {
         createTokens();
     }
 

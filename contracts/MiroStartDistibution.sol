@@ -30,7 +30,7 @@ contract MiroStartDistribution is Ownable {
     }
 
     function isDistributor(address _address) public constant returns (bool) {
-        if( distributors[_address] != uint256(0x0) ) {
+        if( distributors[_address] != 0x0 ) {
             return true;
         }
         return false;
